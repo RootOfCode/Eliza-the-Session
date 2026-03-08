@@ -53,7 +53,7 @@ That's it. One file. No dependencies. No build step.
 | Input         | Action                         |
 |---------------|--------------------------------|
 | *(just type)* | Speak to the therapist         |
-| `quit` / `exit` | End the session              |
+| `quit`        | End the session              |
 | `help`        | Show command reference         |
 | `log`         | View live session summary      |
 | `Enter` (blank)| Let silence speak             |
