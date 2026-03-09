@@ -1142,24 +1142,24 @@
 
 (defun print-header ()
   (let* ((name-str (if *patient-name* (format nil "  ~A  " *patient-name*) "         "))
-         (info-str (format nil "~55A"
-                           (format nil "  turn ~2D  |  session ~D  |~A"
+         (info-str (format nil "~47A"
+                           (format nil "turn ~2D  |  session ~D  |~A"
                                    *turn* (1+ *loop-trips*) name-str))))
-    (format t "~A~%"  (dgreen "  +=====================================================+"))
-    (format t "  ~A~A~A~%"
+    (format t "~66,1,2:@<~A~>~%"  (dgreen "+=====================================================+"))
+    (format t "~2,1,2@A~64:@<~A~>~A~%"
             (dgreen "|")
-            (bgreen "       E L I Z A  :  T H E  S E S S I O N          ")
+            (bgreen "E L I Z A  :  T H E  S E S S I O N")
             (dgreen "|"))
-    (format t "  ~A ~A~A~%"
+    (format t "~2,1,2@A~61,1,3:@<~A~>~A~%"
             (dgreen "|")
-            (dgreen (format nil "~55A" info-str))
+            (dgreen info-str)
             (dgreen "|"))
-    (format t "  ~A  ~A  ~A~%"
-            (dgreen "|") (stage-label) (dgreen "                               |"))
-    (format t "  ~A  ~A  ~A~%"
-            (dgreen "|") (score-bar) (dgreen "                              |"))
-    (format t "~A~%~%"
-            (dgreen "  +=====================================================+")))
+    (format t "~2,1,2@A~64A~A~%"
+            (dgreen "|") (stage-label) (dgreen "|"))
+    (format t "~2,1,2@A~84A~A~%"
+            (dgreen "|") (score-bar) (dgreen "|"))
+    (format t "~66,1,2:@<~A~>~%"
+            (dgreen "+=====================================================+")))
   (finish-output))
 
 (defun therapist-says (text &optional (color-fn #'green))
