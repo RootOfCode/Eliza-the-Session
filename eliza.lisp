@@ -64,17 +64,23 @@
 (defvar *ambient-tick*   0)
 (defvar *patient-name*   nil)
 (defvar *silence-run*    0)
+(defvar *photo-shown*     nil)
+(defvar *tape-played*     nil)
+(defvar *flashback-count* 0)
 
 (defun log-line (role text)
   (push (list *turn* role text) *session-log*))
 
 (defun reset-state ()
-  (setf *stage*        :intake
-        *prev-stage*   :intake
-        *turn*         0
-        *resistance*   (floor *resistance* 2)
-        *score*        (floor *score* 2)
-        *silence-run*  0))
+  (setf *stage*           :intake
+        *prev-stage*      :intake
+        *turn*            0
+        *resistance*      (floor *resistance* 2)
+        *score*           (floor *score* 2)
+        *silence-run*     0
+        *photo-shown*     nil
+        *tape-played*     nil
+        *flashback-count* 0))
 
 ;;; ═════════════════════════════════════════════════════════════════
 ;;; §3  RESPONSE SELECTION
@@ -101,9 +107,9 @@
   '(
     ;; ── FAMILY ─────────────────────────────────────────────────
     ("mother" -1 :family
-     ("Tell me more about your mother."
-      "Your mother... yes. How did she make you feel?"
-      "What is your earliest memory of your mother?")
+     ("Your mother. What about her?"
+      "Tell me about your mother -- specifically."
+      "Something your mother knew, or didn't. What is it?")
      ("Your mother was there that day, wasn't she."
       "Did your mother know about the lake?"
       "She never talked about what happened, did she."
@@ -142,9 +148,9 @@
 
     ;; ── SLEEP / UNCONSCIOUS ────────────────────────────────────
     ("dream" -2 :dreams
-     ("Dreams often carry what the waking mind refuses to hold."
-      "Tell me about this dream in detail."
-      "How often do you have this dream?")
+     ("The dream -- what happens in it?"
+      "Tell me about this dream from the very beginning."
+      "How often does it come back?")
      ("The dream -- is there water in it?"
       "Does someone call your name in the dream?"
       "There's a figure in the dream you can't quite see, isn't there."
@@ -171,9 +177,9 @@
       "Stay with it. Don't look away."))
 
     ("sleep" -1 :dreams
-     ("How is your sleep?"
-      "Tell me about your sleeping patterns."
-      "When did sleep become difficult?")
+     ("Sleep. When did it stop coming easily?"
+      "Tell me what wakes you."
+      "Something is waiting in the dark. What is it?")
      ("You don't sleep well. Do you."
       "What is it that wakes you?"
       "Something is waiting in the dark that you can't outrun.")
@@ -186,9 +192,9 @@
 
     ;; ── FEAR ───────────────────────────────────────────────────
     ("afraid" -2 :fear
-     ("What is it you're afraid of, exactly?"
-      "Fear is important information. Follow it."
-      "When did this fear begin?")
+     ("What exactly are you afraid of?"
+      "Afraid of what -- or whom?"
+      "When did this fear begin? I want the specific moment.")
      ("Is it the water you fear, or what happened near it?"
       "You're afraid of remembering, aren't you."
       "Some fears are memories that haven't been named yet.")
@@ -229,9 +235,9 @@
 
     ;; ── WATER / THE LAKE ───────────────────────────────────────
     ("water" -3 :water
-     ("Water. That's interesting. Go on."
-      "What do you associate with water?"
-      "Does water come up often in your thoughts or dreams?")
+     ("Water. Yes. I thought that might come up."
+      "What do you feel when you're near water now?"
+      "Does water come up often -- in your thoughts, your dreams?")
      ("There was a lake, wasn't there. When you were young."
       "The water was very still that afternoon."
       "Someone you loved was drawn to the water.")
@@ -246,14 +252,15 @@
      ("A lake. Tell me about this lake."
       "What is it about the lake that stays with you?"
       "Describe the lake to me.")
-     ("You went there every summer as a child, didn't you."
-      "Who went with you to the lake?"
-      "There was a last summer at that lake. Wasn't there.")
-     ("That was the last time you went there."
+     ("You went there every summer. Since you were small."
+      "There was a dock. A wooden dock with a broken railing on the left side."
+      "You remember the dock.")
+     ("That was the last summer at that lake."
       "The last time you saw Sam."
-      "The lake took something from you that day that you never got back.")
+      "The light that afternoon -- it was late. The sun was already low."
+      "The lake took something that day you never got back.")
      ("Can you still see it? Close your eyes."
-      "The colour of the water. The light."
+      "The colour of the water. The light on the surface."
       "The sound -- or the silence -- after."))
 
     ("swim" -2 :water
@@ -321,9 +328,9 @@
 
     ;; ── DEATH ──────────────────────────────────────────────────
     ("dead" -3 :death
-     ("Death is a heavy word. Tell me more."
-      "Who has died?"
-      "How does death figure into what you're experiencing?")
+     ("Who is dead?"
+      "When did this happen?"
+      "Tell me about this death. From the beginning.")
      ("There was a death, wasn't there. When you were a child."
       "A child doesn't have the tools to process death like that."
       "They told you not to cry. Didn't they.")
@@ -349,9 +356,9 @@
       "It's time to put it down."))
 
     ("death" -3 :death
-     ("Death. Tell me more."
-      "Has death been on your mind often?"
-      "Whose death?")
+     ("Whose death?"
+      "Death has been on your mind. When did that start?"
+      "A specific death. Tell me.")
      ("The death of someone young. Someone who shouldn't have died."
       "There was nothing you could have done. That's what you've told yourself."
       "But some part of you has never believed it.")
@@ -378,9 +385,9 @@
 
     ;; ── GUILT / CONFESSION ─────────────────────────────────────
     ("guilty" -3 :guilt
-     ("Guilt. Tell me about it."
+     ("Guilty. Of what, specifically?"
       "What do you feel guilty about?"
-      "Guilt is often misdirected. Let's examine it carefully.")
+      "Guilt like this has an origin. Where did it start?")
      ("This guilt is old, isn't it."
       "It took root that summer."
       "You've been punishing yourself for a very long time.")
@@ -464,13 +471,13 @@
      ("Sam. Who is Sam?"
       "Tell me about Sam."
       "Sam... yes. Go on.")
-     ("Sam has come up before. In other forms."
-      "Sam meant a great deal to you."
-      "What happened to Sam?")
-     ("Sam. Yes. You're ready to talk about Sam."
-      "Sam was real. What happened to Sam was real."
-      "What do you want to say about Sam?")
-     ("Sam is here in this room with you."
+     ("Sam has come up before. In other ways."
+      "Sam always ran ahead. Did you know that was the last time?"
+      "What happened to Sam that afternoon?")
+     ("Sam couldn't swim. Not well enough. You knew that."
+      "Sam was laughing, right up until the moment."
+      "That sound -- you can still hear it, can't you.")
+     ("Sam is here in this room."
       "In every word you haven't said."
       "Say them now."))
 
@@ -604,11 +611,12 @@
      ("Summer. What about summer?"
       "A specific summer, or summers in general?"
       "What do you remember about summer?")
-     ("There was a particular summer. Wasn't there."
-      "The summer you've never spoken about."
-      "The last summer you were truly a child.")
+     ("There was a particular summer. The last one."
+      "You'd been going to that lake every summer since you were seven."
+      "Your family always brought the same red cooler. You remember that.")
      ("That summer at the lake."
-      "You can smell it, can't you. The heat on the water."
+      "Sam ran ahead down to the dock. The way Sam always did."
+      "And you stood at the top of the bank and watched."
       "The afternoon that changed everything.")
      ("Tell me about the day."
       "Start in the morning, if you can."
@@ -805,20 +813,20 @@
 
 (defparameter *generic*
   '(:intake
-    ("Tell me more about that."
-     "I see. Please continue."
-     "How does that make you feel?"
-     "That's significant. Say more."
-     "And how long have you felt this way?"
-     "Can you say more about that?"
-     "What comes to mind when you say that?"
-     "Go on."
-     "I'm listening. Continue."
-     "What else?"
-     "Let's stay with that for a moment."
-     "What is the first word that comes to you?"
-     "That's interesting. Tell me more."
-     "How does that sit with you?")
+    ("There's more to that than you're saying."
+     "You came here carrying something. Tell me what it is."
+     "You almost said something just then. What was it?"
+     "Go on. I'm noting everything."
+     "The thing underneath what you're telling me -- let's go there."
+     "Is there someone you haven't mentioned yet?"
+     "Before we go further -- has anyone close to you died?"
+     "I keep hearing something underneath the words. A name, almost."
+     "You're not telling me the most important thing yet."
+     "Something happened before all of this. I want to know what."
+     "I had a feeling you'd bring that up."
+     "There's a specific summer I want to ask you about. But go on."
+     "You've described something very similar to this before. In a different room, perhaps."
+     "The word you're not using. What is it?")
     :exploration
     ("You've mentioned this before. In different words."
      "There's something underneath what you're saying."
@@ -867,13 +875,13 @@
 ;;; ═════════════════════════════════════════════════════════════════
 
 (defparameter *mirror-templates*
-  '("You said \"~A\" -- what does that mean to you?"
-    "\"~A\" -- I want to stay with that word."
+  '("You said \"~A\" -- why that word?"
+    "\"~A\" -- I want to stay with that."
     "When you say \"~A\", what do you see?"
-    "\"~A\". Why that word?"
-    "Tell me more about \"~A\"."
-    "\"~A\" keeps coming up. Why?"
-    "What does \"~A\" really mean to you?"))
+    "\"~A\". Say it again. Slowly."
+    "\"~A\" keeps coming up. That's not an accident."
+    "There's another word that goes with \"~A\". What is it?"
+    "\"~A\" -- I've heard that word before, in this room."))
 
 (defparameter *mirror-stopwords*
   '("i" "me" "my" "the" "a" "an" "is" "it" "in" "on" "at" "to" "do"
@@ -915,6 +923,13 @@
 ;;; §7  PROACTIVE AMBIENT PUSHES
 ;;; ═════════════════════════════════════════════════════════════════
 
+(defparameter *ambient-intake*
+  '("You seem like someone who has been carrying something for a long time."
+    "Before we go further -- is there someone you've lost?"
+    "I hear a particular kind of silence in some patients. I hear it in you."
+    "There's something you came here to say. You haven't said it yet."
+    "Something happened to someone close to you. I can tell."))
+
 (defparameter *ambient-exploration*
   '("Something you said just now -- about the summer -- it keeps repeating."
     "I notice you haven't mentioned how it ended."
@@ -938,36 +953,154 @@
 
 (defun maybe-ambient ()
   (incf *ambient-tick*)
-  (when (zerop (mod *ambient-tick* 5))
-    (case *stage*
-      (:exploration (pick *ambient-exploration*))
-      (:revelation  (pick *ambient-revelation*))
-      (t nil))))
+  (case *stage*
+    (:intake
+     (when (= *turn* 3)
+       (pick *ambient-intake*)))
+    (:exploration
+     (when (zerop (mod *ambient-tick* 4))
+       (pick *ambient-exploration*)))
+    (:revelation
+     (when (zerop (mod *ambient-tick* 4))
+       (pick *ambient-revelation*)))
+    (t nil)))
 
 ;;; ═════════════════════════════════════════════════════════════════
-;;; §8  RESISTANCE / SILENCE
+;;; §8b  FLASHBACK FRAGMENTS
 ;;; ═════════════════════════════════════════════════════════════════
+
+(defparameter *flashback-triggers*
+  '("water" "lake" "summer" "swim" "dream" "nightmare" "sam" "dock"
+    "child" "young" "remember" "memory" "friend" "died" "dead"))
+
+(defparameter *flashback-fragments*
+  '("sunscreen and lake water. the smell of it."
+    "a wooden dock. a broken railing on the left side."
+    "sam, running ahead. always running ahead."
+    "the red cooler. your family always brought the same red cooler."
+    "late afternoon. the sun already low. shadows long on the water."
+    "sam's laugh. and then no laugh."
+    "your feet on the bank. not moving."
+    "the surface of the water. how still it went."
+    "someone calling a name. not yours."
+    "the drive home. no one spoke."
+    "the sound of the car door. the smell of the vinyl seats."
+    "a towel on the dock that no one picked up."
+    "sam's shoes. left at the top of the bank."))
+
+(defun flashback-trigger-p (input)
+  (let ((lower (string-downcase input)))
+    (some (lambda (w) (search w lower)) *flashback-triggers*)))
+
+(defun show-flashback ()
+  "Display a fragmented memory intrusion before ELIZA speaks."
+  (when (and (member *stage* '(:exploration :revelation))
+             (< *flashback-count* 6)
+             (flashback-trigger-p
+              ;; peek at the last patient line
+              (let ((entry (find :patient *session-log* :key #'second)))
+                (if entry (third entry) "")))
+             (= (random 3) 0))
+    (let ((fragment (pick *flashback-fragments*)))
+      (when fragment
+        (incf *flashback-count*)
+        (pause 0.4)
+        (format t "~%  ~A~%~%" (dgreen (format nil "[  -- ~A --  ]" fragment)))
+        (finish-output)
+        (pause 1.2)))))
+
+;;; ═════════════════════════════════════════════════════════════════
+;;; §8c  THE PHOTO EVENT
+;;; ═════════════════════════════════════════════════════════════════
+
+(defun maybe-show-photo ()
+  "Fire once in :exploration around turn 8-11 when a water/lake/sam word appears."
+  (when (and (not *photo-shown*)
+             (eq *stage* :exploration)
+             (>= *turn* 8)
+             (<= *turn* 14)
+             (flashback-trigger-p
+              (let ((entry (find :patient *session-log* :key #'second)))
+                (if entry (third entry) ""))))
+    (setf *photo-shown* t)
+    (pause 0.8)
+    (format t "~%")
+    (format t "  ~A~%" (yellow "[ A pause. The sound of a folder opening. ]"))
+    (finish-output)
+    (pause 2.2)
+    (format t "~%")
+    (slow-line (byellow "  ELIZA >  There is a photograph in your file.") 0.032)
+    (pause 0.6)
+    (slow-line (byellow "           Two children. A lake. A wooden dock.") 0.032)
+    (pause 0.6)
+    (slow-line (byellow "           One of them is you.") 0.038)
+    (pause 1.0)
+    (slow-line (byellow "           Who is the other child?") 0.038)
+    (pause 0.5)
+    (format t "~%")
+    (finish-output)
+    t))
+
+;;; ═════════════════════════════════════════════════════════════════
+;;; §8d  TAPE PLAYBACK
+;;; ═════════════════════════════════════════════════════════════════
+
+(defun maybe-play-tape ()
+  "Fire once in :revelation -- quote back a patient line, recontextualised."
+  (when (and (not *tape-played*)
+             (eq *stage* :revelation)
+             (>= *turn* 14))
+    ;; find a substantial patient line from the log
+    (let ((candidate
+           (loop for entry in *session-log*
+                 when (and (eq (second entry) :patient)
+                           (> (length (third entry)) 20))
+                 return (third entry))))
+      (when candidate
+        (setf *tape-played* t)
+        (pause 0.6)
+        (format t "~%  ~A~%" (dgreen "[ A click. A hiss of tape. ]"))
+        (finish-output)
+        (pause 1.8)
+        (format t "  ~A  " (dgreen "TAPE  >"))
+        (typewrite (dgreen (format nil "\"~A\"" candidate)) 0.025)
+        (terpri) (finish-output)
+        (pause 1.5)
+        (format t "~%  ~A~%" (yellow "[ End of recording. ]"))
+        (finish-output)
+        (pause 1.2)
+        (format t "~%")
+        (slow-line (byellow "  ELIZA >  You said that. In this room.") 0.034)
+        (pause 0.5)
+        (slow-line (byellow "           Listen to it again.") 0.034)
+        (pause 0.8)
+        (slow-line (byellow "           What were you really saying?") 0.038)
+        (pause 0.5)
+        (format t "~%")
+        (finish-output)
+        t))))
+
+
 
 (defparameter *resistance-responses*
-  '("You're deflecting."
-    "You don't want to say it."
-    "You know what I'm asking."
-    "Stop. Think about what you just said."
-    "That's not what we're here to talk about."
-    "You're moving away from something important."
-    "Why are you avoiding this?"
+  '("You're moving away from the thing."
+    "You know what you're not saying."
     "Every time we get close, you step back."
-    "I notice what you're doing."
-    "The deflection is getting harder, isn't it."))
+    "I notice what you're doing. I've seen it before."
+    "Stop. Go back to what you said a moment ago."
+    "The deflection is getting harder, isn't it."
+    "I'm not going to let you do that."
+    "You came here. You came all the way here. Don't stop now."
+    "The thing you keep circling. Name it."))
 
 (defparameter *silence-responses*
   '("You're very quiet."
-    "The silence has a shape."
+    "The silence has a shape. I can see it."
     "What's in the silence?"
-    "I'm still here."
-    "You don't have to fill the silence. But you should."
-    "Something in the silence is trying to speak."
-    "Take your time. But take it."))
+    "You're still here. So am I."
+    "The thing you won't say is still in the room."
+    "Something in the silence is trying to speak. Let it."
+    "I've been doing this a long time. I know what this silence means."))
 
 (defun short-evasive-p (input)
   (or (< (length (string-trim " " input)) 8)
@@ -1436,18 +1569,21 @@
         ;; normal input
         (t
          (atmospheric-event)
-         (let ((response (process-input input)))
-           (stage-transition-msg)
-           (when (and (>= *turn* 4) (zerop (mod *turn* 9)))
-             (pause 0.3) (clr) (print-header))
-           (when response
-             (let ((cfn (case *stage*
-                          (:intake      #'green)
-                          (:exploration #'yellow)
-                          (:revelation  #'byellow)
-                          (:crisis      #'bred)
-                          (t            #'green))))
-               (therapist-says response cfn))))
+         (show-flashback)
+         (let ((photo-fired (maybe-show-photo))
+               (tape-fired  (maybe-play-tape)))
+           (let ((response (process-input input)))
+             (stage-transition-msg)
+             (when (and (>= *turn* 4) (zerop (mod *turn* 9)))
+               (pause 0.3) (clr) (print-header))
+             (when (and response (not photo-fired) (not tape-fired))
+               (let ((cfn (case *stage*
+                            (:intake      #'green)
+                            (:exploration #'yellow)
+                            (:revelation  #'byellow)
+                            (:crisis      #'bred)
+                            (t            #'green))))
+                 (therapist-says response cfn)))))
 
          (let ((ending (check-ending)))
            (case ending
