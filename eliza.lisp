@@ -1488,7 +1488,7 @@
           "") do
     (format t "~A~%" (dgreen line)) (finish-output) (pause 0.12))
   (format t "~%  ~A" (green "  Press ENTER to begin."))
-  (finish-output) (read-line)
+  (finish-output) (read-line *standard-input* nil nil)
   (clr) (print-header))
 
 ;;; ═════════════════════════════════════════════════════════════════
